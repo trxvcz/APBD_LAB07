@@ -1,6 +1,5 @@
-namespace LAB_07.DTOs;
+namespace APBD_LAB07.DTOs;
 
 public class UpdateAppointmentRequestDto
 {
-    
 }

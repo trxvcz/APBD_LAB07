@@ -1,23 +1,32 @@
 using APBD_LAB07.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace APBD_LAB07.Controllers
-{
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AppointmentsController(AppointmentService appointmentService) : ControllerBase
-    {   
-        
-        [HttpGet]
-        public IActionResult GetAll()
-        {
-            return Ok(appointmentService.GetAll());
-        }
+namespace APBD_LAB07.Controllers;
 
-        [HttpGet("{id:int}")]
-        public IActionResult Get([FromQuery]int? id, [FromQuery] DateTime? dateTime, [FromQuery] string? status, [FromQuery] string? reason, [FromQuery]string? patientFullName, [FromQuery]string? patientEmail)
+[Route("api/[controller]")]
+[ApiController]
+public class AppointmentsController(AppointmentService appointmentService) : ControllerBase
+{
+    [HttpGet]
+    public async Task<OkObjectResult> Get([FromQuery] string? status, [FromQuery] string? patientLastName)
+    {
+        
+        if (string.IsNullOrEmpty(status) || string.IsNullOrEmpty(patientLastName))
         {
-            return Ok(appointmentService.GetAll(id, dateTime, status, reason, patientFullName, patientEmail));
+            var res =  await appointmentService.GetAll();    
+            return Ok(res);
         }
+        else
+        {
+            var res = await appointmentService.GetAll(status, patientLastName);
+            return Ok(res);
+        }
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<OkObjectResult> GetById(int id)
+    {
+        var result = await appointmentService.GetById(id);
+        return Ok(result);
     }
 }

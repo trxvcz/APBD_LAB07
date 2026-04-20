@@ -1,4 +1,4 @@
-namespace LAB_07.Models;
+namespace APBD_LAB07.Models;
 
 public class Appointment
 {

@@ -1,10 +1,14 @@
-namespace LAB_07.DTOs;
+namespace APBD_LAB07.DTOs;
 
 public class AppointmentDetailsDto
 {
     public int Id { get; set; }
     public int PatientId { get; set; }
-    public int DoctorId { get; set; }
+    public string PatientFullName { get; set; }
+    public string PatientEmail { get; set; }
+    public string PatientPhone { get; set; }
+    public string DoctorLicenseNr { get; set; }
+    public string DoctorFullName { get; set; }
     public DateTime AppointmentDate { get; set; }
     public string Status { get; set; }
     public string Reason { get; set; } = string.Empty;
