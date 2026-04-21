@@ -66,7 +66,7 @@ public class AppointmentService(IConfiguration config)
 
         await using var reader = await query.ExecuteReaderAsync();
 
-        while (reader.Read())
+        while (await reader.ReadAsync())
         {
             var a = new AppointmentsListDto
             {
@@ -80,13 +80,13 @@ public class AppointmentService(IConfiguration config)
             appointmentsDetails.Add(a);
         }
 
+        
+        
         return appointmentsDetails;
     }
 
-    public async Task<AppointmentDetailsDto> GetById(int id)
+    public async Task<AppointmentDetailsDto?> GetById(int id)
     {
-        var appointmentDetails = new AppointmentDetailsDto();
-
         await using var connection = new SqlConnection(_connectionString);
 
         await connection.OpenAsync();
@@ -100,34 +100,34 @@ public class AppointmentService(IConfiguration config)
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        while (reader.Read())
+        if (!await reader.ReadAsync()) return null;
+        var a = new AppointmentDetailsDto
         {
-            var a = new AppointmentDetailsDto
-            {
-                AppointmentDate = reader.GetDateTime(reader.GetOrdinal("AppointmentDate")),
-                CreatedOn = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                DoctorFullName = reader.GetString(reader.GetOrdinal("DoctorFullName")),
-                DoctorLicenseNr = reader.GetString(reader.GetOrdinal("LicenseNumber")),
-                PatientEmail = reader.GetString(reader.GetOrdinal("Email")),
-                PatientFullName = reader.GetString(reader.GetOrdinal("PatientFullName")),
-                PatientId = reader.GetInt32(reader.GetOrdinal("IdPatient")),
-                Id = reader.GetInt32(reader.GetOrdinal("IdAppointment")),
-                Status = reader.GetString(reader.GetOrdinal("Status")),
-                Reason = reader.GetString(reader.GetOrdinal("Reason")),
-                notes = reader.IsDBNull(reader.GetOrdinal("InternalNotes")) ? "" :reader.GetString(reader.GetOrdinal("InternalNotes")),
-                PatientPhone = reader.GetString(reader.GetOrdinal("PhoneNumber"))
-            };
-            appointmentDetails =a ;
-        }
-        return appointmentDetails;
+            AppointmentDate = reader.GetDateTime(reader.GetOrdinal("AppointmentDate")),
+            CreatedOn = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
+            DoctorFullName = reader.GetString(reader.GetOrdinal("DoctorFullName")),
+            DoctorLicenseNr = reader.GetString(reader.GetOrdinal("LicenseNumber")),
+            PatientEmail = reader.GetString(reader.GetOrdinal("Email")),
+            PatientFullName = reader.GetString(reader.GetOrdinal("PatientFullName")),
+            PatientId = reader.GetInt32(reader.GetOrdinal("IdPatient")),
+            Id = reader.GetInt32(reader.GetOrdinal("IdAppointment")),
+            Status = reader.GetString(reader.GetOrdinal("Status")),
+            Reason = reader.GetString(reader.GetOrdinal("Reason")),
+            notes = reader.IsDBNull(reader.GetOrdinal("InternalNotes")) ? "" :reader.GetString(reader.GetOrdinal("InternalNotes")),
+            PatientPhone = reader.GetString(reader.GetOrdinal("PhoneNumber"))
+        };
+        return a;
     }
     
     
    
 
-    public async void Create(CreateAppointmentRequestDto appointmentRequest)
+    public async Task Create(CreateAppointmentRequestDto appointmentRequest)
     {
-
+        var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        
+        // Doctor id By name and surname
         int doctorId = -1;
         if (appointmentRequest.DoctorId == null)
         {
@@ -136,11 +136,10 @@ public class AppointmentService(IConfiguration config)
                 throw new Exception("Fill the doctor Data");
             }
             
-            var conection = new SqlConnection(_connectionString);
-            await conection.OpenAsync();
+            
             
             await using var command =
-                new SqlCommand("SELECT IdDoctor FROM Doctors WHERE Doctors.FirstName = @lastname AND Doctors.FirstName = @firstname",conection);
+                new SqlCommand("SELECT IdDoctor FROM Doctors WHERE Doctors.FirstName = @lastname AND Doctors.FirstName = @firstname",connection);
             
             var lastName = appointmentRequest.DoctorFullName.Split(' ').Last();
             var firstName = appointmentRequest.DoctorFullName.Split(' ').First();
@@ -158,7 +157,7 @@ public class AppointmentService(IConfiguration config)
             }
             else
             {
-                await using var command2 = new SqlCommand("SELECT IdDoctor FROM Doctors WHERE Doctors.FirstName = @lastname AND Doctors.FirstName = @firstname", conection);
+                await using var command2 = new SqlCommand("SELECT IdDoctor FROM Doctors WHERE Doctors.FirstName = @lastname AND Doctors.FirstName = @firstname", connection);
                 
                 command.Parameters.Add("@lastname", SqlDbType.NVarChar).Value = firstName;
                 command.Parameters.Add("@firstname", SqlDbType.NVarChar).Value = lastName;
@@ -174,7 +173,7 @@ public class AppointmentService(IConfiguration config)
             doctorId= appointmentRequest.DoctorId.Value;
         }
         
-        
+        // Pacjent id by name and surname
         int patientId = -1;
         if (appointmentRequest.PatientId == null)
         {
@@ -183,10 +182,7 @@ public class AppointmentService(IConfiguration config)
                 throw new Exception("Fill the patient Data");
             }
             
-            var conection = new SqlConnection(_connectionString);
-            await conection.OpenAsync();
-            
-            var command = new SqlCommand("SELECT IdPatient FROM Patients WHERE Patients.FirstName = @firstName AND Patients.LastName = @lastName",conection);
+            await using var command = new SqlCommand("SELECT IdPatient FROM Patients WHERE Patients.FirstName = @firstName AND Patients.LastName = @lastName",connection);
             
             var firstname =  appointmentRequest.PatientFullName.Split(' ').First();
             var lastname = appointmentRequest.PatientFullName.Split(' ').Last();
@@ -196,17 +192,13 @@ public class AppointmentService(IConfiguration config)
             
             await using var reader = await command.ExecuteReaderAsync();
 
-            if (reader.HasRows)
+            if (await reader.ReadAsync())
             {
-                while (reader.Read())
-                {
                     patientId= reader.GetInt32(reader.GetOrdinal("IdPatient"));
-                }
-                    
             }
             else
             {
-                var command2 = new SqlCommand("SELECT IdPatient FROM Patients WHERE Patients.FirstName = @firstName AND Patients.LastName = @lastName",conection);
+                var command2 = new SqlCommand("SELECT IdPatient FROM Patients WHERE Patients.FirstName = @firstName AND Patients.LastName = @lastName",connection);
                 
                 
                 command.Parameters.Add("@firstname", SqlDbType.NVarChar).Value = lastname;
@@ -214,7 +206,7 @@ public class AppointmentService(IConfiguration config)
                 
                 await using var reader2 = await command2.ExecuteReaderAsync();
                 
-                while (reader2.Read()){
+                if(await reader2.ReadAsync()){
                     patientId =  reader2.GetInt32(reader.GetOrdinal("IdPatient"));
                 }
             }
@@ -224,28 +216,62 @@ public class AppointmentService(IConfiguration config)
             patientId = appointmentRequest.PatientId.Value;
         }
         
-        
-        
-        
-        var appointment = new Appointment
+        // Patient id if exist and is Active
+        if (appointmentRequest.PatientId != null)
         {
-            AppointmentDate = appointmentRequest.AppointmentDate,
-            CreatedAt = DateTime.Now,
-            DoctorId = doctorId,
-            
-            
+            await using var existAndActiveCommand = new SqlCommand("SELECT IdPatient From Patients WHERE IdPatient=1 AND IsActive='true'; ", connection);
+            existAndActiveCommand.Parameters.Add("@id", SqlDbType.Int).Value = appointmentRequest.PatientId.Value;
+
+            await using var reader = await existAndActiveCommand.ExecuteReaderAsync();
+
+
+            if (!await reader.ReadAsync())
+            {
+                throw new Exception("No active patient found");
+            }
         }
         
         
         
+        //TODO DoctorId exists and is Active
+
+        var commandId = new SqlCommand( "SELECT MAX(Appointments.IdAppointment)+1 FROM Appointments;",connection);
+        int id = 0;
+        var readerId = commandId.ExecuteReader();
+        if (readerId.Read())
+        {
+            id = readerId.GetInt32(0);
+        }
         
         
         
+
+        var appointment = new Appointment
+        {
+            Id = id,
+            AppointmentDate = appointmentRequest.AppointmentDate,
+            CreatedAt = DateTime.Now,
+            DoctorId = doctorId,
+            PatientId = patientId,
+            Status = "",
+            Reason = appointmentRequest.Reason,
+            InternalNotes = ""
+        };
         
         
+        var commandAdd = new SqlCommand("",connection);
         
-        
-        
-        
+
+
+
+
+
+
+
+
+
+
+
+
     }
 }

@@ -9,36 +9,59 @@ namespace APBD_LAB07.Controllers;
 [ApiController]
 public class AppointmentsController(AppointmentService appointmentService) : ControllerBase
 {
+    private readonly AppointmentService _appointmentService = appointmentService;
+
     [HttpGet]
-    public async Task<OkObjectResult> Get([FromQuery] string? status, [FromQuery] string? patientLastName)
+    public async Task<IActionResult> Get([FromQuery] string? status, [FromQuery] string? patientLastName)
     {
         
         if (string.IsNullOrEmpty(status) || string.IsNullOrEmpty(patientLastName))
         {
-            var res =  await appointmentService.GetAll();    
-            return Ok(res);
+            var res =  await _appointmentService.GetAll();
+
+            if (res.Count == 0)
+            {
+                return NotFound(res);
+            }
+            else
+            {
+                return Ok(res);
+            }
         }
         else
         {
-            var res = await appointmentService.GetAll(status, patientLastName);
-            return Ok(res);
+            var res = await _appointmentService.GetAll(status, patientLastName);
+            if (res.Count == 0)
+            {
+                return NotFound(res);
+            }
+            else
+            {
+                return Ok(res);
+            }
         }
     }
 
     [HttpGet("{id:int}")]
-    public async Task<OkObjectResult> GetById(int id)
+    public async Task<IActionResult> GetById(int id)
     {
-        var result = await appointmentService.GetById(id);
-        return Ok(result);
+        var result = await _appointmentService.GetById(id);
+        if (result == null)
+        {
+            return NotFound(result);
+        }else
+        {
+            return Ok(result);
+        }
     }
 
-    [HttpPost]
-    public async Task<CreatedAtActionResult> Post([FromBody] CreateAppointmentRequestDto appointmentRequest)
-    {
-        appointmentService.Create(appointmentRequest);
+    //[HttpPost]
+    //public async Task<CreatedAtActionResult> Post([FromBody] CreateAppointmentRequestDto appointmentRequest)
+    //{
+       // return Ok( await _appointmentService.Create(appointmentRequest));
         
 
 
-
-    }
+        
+   // }
 }
