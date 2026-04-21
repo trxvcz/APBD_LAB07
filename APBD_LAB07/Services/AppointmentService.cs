@@ -1,5 +1,6 @@
 using System.Data;
 using APBD_LAB07.DTOs;
+using APBD_LAB07.Models;
 using Microsoft.Data.SqlClient;
 
 namespace APBD_LAB07.Services;
@@ -39,7 +40,6 @@ public class AppointmentService(IConfiguration config)
 
         return appointmentsDtos;
     }
-
 
     public async Task<List<AppointmentsListDto>> GetAll(string? status, string? patientLastName)
     {
@@ -120,5 +120,132 @@ public class AppointmentService(IConfiguration config)
             appointmentDetails =a ;
         }
         return appointmentDetails;
+    }
+    
+    
+   
+
+    public async void Create(CreateAppointmentRequestDto appointmentRequest)
+    {
+
+        int doctorId = -1;
+        if (appointmentRequest.DoctorId == null)
+        {
+            if (appointmentRequest.DoctorFullName == null)
+            {
+                throw new Exception("Fill the doctor Data");
+            }
+            
+            var conection = new SqlConnection(_connectionString);
+            await conection.OpenAsync();
+            
+            await using var command =
+                new SqlCommand("SELECT IdDoctor FROM Doctors WHERE Doctors.FirstName = @lastname AND Doctors.FirstName = @firstname",conection);
+            
+            var lastName = appointmentRequest.DoctorFullName.Split(' ').Last();
+            var firstName = appointmentRequest.DoctorFullName.Split(' ').First();
+
+            command.Parameters.Add("@lastname", SqlDbType.NVarChar).Value = lastName;
+            command.Parameters.Add("@firstname", SqlDbType.NVarChar).Value = firstName;
+
+            await using var reader = await command.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {   
+                    doctorId =  reader.GetInt32(reader.GetOrdinal("IdDoctor"));
+                }    
+            }
+            else
+            {
+                await using var command2 = new SqlCommand("SELECT IdDoctor FROM Doctors WHERE Doctors.FirstName = @lastname AND Doctors.FirstName = @firstname", conection);
+                
+                command.Parameters.Add("@lastname", SqlDbType.NVarChar).Value = firstName;
+                command.Parameters.Add("@firstname", SqlDbType.NVarChar).Value = lastName;
+                
+                while (reader.Read())
+                {   
+                    doctorId =  reader.GetInt32(reader.GetOrdinal("IdDoctor"));
+                }  
+            }
+        }
+        else
+        {
+            doctorId= appointmentRequest.DoctorId.Value;
+        }
+        
+        
+        int patientId = -1;
+        if (appointmentRequest.PatientId == null)
+        {
+            if (appointmentRequest.PatientFullName == null)
+            {
+                throw new Exception("Fill the patient Data");
+            }
+            
+            var conection = new SqlConnection(_connectionString);
+            await conection.OpenAsync();
+            
+            var command = new SqlCommand("SELECT IdPatient FROM Patients WHERE Patients.FirstName = @firstName AND Patients.LastName = @lastName",conection);
+            
+            var firstname =  appointmentRequest.PatientFullName.Split(' ').First();
+            var lastname = appointmentRequest.PatientFullName.Split(' ').Last();
+
+            command.Parameters.Add("@firstname", SqlDbType.NVarChar).Value = firstname;
+            command.Parameters.Add("@lastname", SqlDbType.NVarChar).Value = lastname;
+            
+            await using var reader = await command.ExecuteReaderAsync();
+
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    patientId= reader.GetInt32(reader.GetOrdinal("IdPatient"));
+                }
+                    
+            }
+            else
+            {
+                var command2 = new SqlCommand("SELECT IdPatient FROM Patients WHERE Patients.FirstName = @firstName AND Patients.LastName = @lastName",conection);
+                
+                
+                command.Parameters.Add("@firstname", SqlDbType.NVarChar).Value = lastname;
+                command.Parameters.Add("@lastname", SqlDbType.NVarChar).Value = firstname;
+                
+                await using var reader2 = await command2.ExecuteReaderAsync();
+                
+                while (reader2.Read()){
+                    patientId =  reader2.GetInt32(reader.GetOrdinal("IdPatient"));
+                }
+            }
+        }
+        else
+        {
+            patientId = appointmentRequest.PatientId.Value;
+        }
+        
+        
+        
+        
+        var appointment = new Appointment
+        {
+            AppointmentDate = appointmentRequest.AppointmentDate,
+            CreatedAt = DateTime.Now,
+            DoctorId = doctorId,
+            
+            
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
     }
 }

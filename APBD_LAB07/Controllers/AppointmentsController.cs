@@ -1,3 +1,5 @@
+using APBD_LAB07.DTOs;
+using APBD_LAB07.Models;
 using APBD_LAB07.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,5 +30,15 @@ public class AppointmentsController(AppointmentService appointmentService) : Con
     {
         var result = await appointmentService.GetById(id);
         return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<CreatedAtActionResult> Post([FromBody] CreateAppointmentRequestDto appointmentRequest)
+    {
+        appointmentService.Create(appointmentRequest);
+        
+
+
+
     }
 }
