@@ -8,6 +8,6 @@ public class Appointment
     public DateTime AppointmentDate { get; set; }
     public string Status { get; set; }
     public string Reason { get; set; }
-    public string InternalNotes { get; set; }
+    public string? InternalNotes { get; set; }
     public DateTime CreatedAt { get; set; }
 }

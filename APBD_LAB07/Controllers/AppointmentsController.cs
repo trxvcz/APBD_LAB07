@@ -1,7 +1,7 @@
 using APBD_LAB07.DTOs;
-using APBD_LAB07.Models;
 using APBD_LAB07.Services;
 using Microsoft.AspNetCore.Mvc;
+using APBD_LAB07.Exceptions;
 
 namespace APBD_LAB07.Controllers;
 
@@ -55,13 +55,77 @@ public class AppointmentsController(AppointmentService appointmentService) : Con
         }
     }
 
-    //[HttpPost]
-    //public async Task<CreatedAtActionResult> Post([FromBody] CreateAppointmentRequestDto appointmentRequest)
-    //{
-       // return Ok( await _appointmentService.Create(appointmentRequest));
-        
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] CreateAppointmentRequestDto appointmentRequest)
+    {
+        try
+        {
+            var res = await _appointmentService.Create(appointmentRequest);
+            return CreatedAtAction(nameof(GetById), new { id = res.Id }, res);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }catch (Exception ex)
+        {
+            return StatusCode(500, new ErrorResponseDto { Message = "Wystąpił nieoczekiwany błąd serwera." });
+        }
 
+    }
 
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Put(int id, [FromBody] UpdateAppointmentRequestDto appointmentRequest)
+    {
+
+        try
+        {
+            var res = await _appointmentService.Put(id, appointmentRequest);
+            return Ok(res);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ErrorResponseDto { Message = "Wystąpił nieoczekiwany błąd serwera.", Type = ex.GetType().ToString() });
+        }
         
-   // }
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteAppointment(int id)
+    {
+        try
+        {
+            await _appointmentService.DeleteAppointment(id);
+            return NoContent();
+        }
+        catch (ConflictException ex) {
+            return Conflict(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }
+        catch (NotFoundException ex) {
+            return NotFound(new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }catch(Exception ex) {
+            return StatusCode(500, new ErrorResponseDto { Message = ex.Message, Type = ex.GetType().ToString() });
+        }
+        
+        
+    }
 }
